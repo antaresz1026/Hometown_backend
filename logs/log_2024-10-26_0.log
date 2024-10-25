@@ -1,5 +1,0 @@
-[2024-10-26 05:28:20.410863][info]: HTTPS Server initialized.
-[2024-10-26 05:28:44.916136][info]: Accepted a new connection.
-[2024-10-26 05:29:35.733538][error]: Error reading body: stream truncated
-[2024-10-26 05:30:42.518740][info]: Accepted a new connection.
-[2024-10-26 05:30:52.788012][error]: Error reading body: stream truncated
