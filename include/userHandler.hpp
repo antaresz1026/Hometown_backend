@@ -17,15 +17,7 @@
 #define _USERHANDLER_HPP
 
 #include "SQLConnection.hpp"
-#include <cryptopp/sha.h>
-#include <cryptopp/hmac.h>
-#include <cryptopp/filters.h>
-#include <cryptopp/hex.h>
-#include <cryptopp/osrng.h>
-#include <cryptopp/base64.h>
 #include <string>
-#include <sstream>
-#include <iomanip>
 
 class userHandler {
 public:

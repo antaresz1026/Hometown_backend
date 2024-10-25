@@ -13,6 +13,15 @@
  * <tr><td>2024-10-11 <td>1.0     <td>antaresz    <td>desc
  * </table>
  */
+#include <cppconn/prepared_statement.h>
+#include <cryptopp/sha.h>
+#include <cryptopp/hmac.h>
+#include <cryptopp/filters.h>
+#include <cryptopp/hex.h>
+#include <cryptopp/osrng.h>
+#include <cryptopp/base64.h>
+#include <sstream>
+#include <iomanip>
 #include "userHandler.hpp"
 
 userHandler::userHandler(SQLConnection& connectionPool) : _connection_pool(connectionPool) {}

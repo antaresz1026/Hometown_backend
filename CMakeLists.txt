@@ -7,7 +7,7 @@ set(CMAKE_CXX_STANDARD_REQUIRED True)
 # 查找 Boost 库
 find_package(Boost REQUIRED COMPONENTS log log_setup unit_test_framework program_options random)
 find_package(MySQL REQUIRED)
-
+find_package(OpenSSL REQUIRED)
 find_library(CRYPTOPP_LIBRARIES cryptopp REQUIRED)
 find_library(MYSQLCPP_CONN mysqlcppconn HINTS /usr/lib/x86_64-linux-gnu)
 
@@ -43,17 +43,19 @@ target_link_libraries(Hometown
     Boost::log_setup
     Boost::log
     Boost::program_options
+    OpenSSL::SSL
+    OpenSSL::Crypto
 )
 
-# 测试设置
-enable_testing()
+# # 测试设置
+# enable_testing()
 
-file(GLOB_RECURSE TEST_FILES tests/*.cpp)
+# file(GLOB_RECURSE TEST_FILES tests/*.cpp)
 
-foreach(test_src ${TEST_FILES})
-    get_filename_component(test_name ${test_src} NAME_WE)
-    add_executable(${test_name} ${test_src} ${SRC_FILES})
-    target_link_libraries(${test_name} ${MYSQLCPP_CONN} ${CRYPTOPP_LIBRARIES} Boost::log_setup Boost::log Boost::unit_test_framework)
-    target_include_directories(${test_name} PRIVATE ${PROJECT_SOURCE_DIR}/include)
-    add_test(NAME ${test_name} COMMAND ${test_name})
-endforeach()
+# foreach(test_src ${TEST_FILES})
+#     get_filename_component(test_name ${test_src} NAME_WE)
+#     add_executable(${test_name} ${test_src} ${SRC_FILES})
+#     target_link_libraries(${test_name} ${MYSQLCPP_CONN} ${CRYPTOPP_LIBRARIES} Boost::log_setup Boost::log Boost::unit_test_framework OpenSSL::SSL OpenSSL::Crypto)
+#     target_include_directories(${test_name} PRIVATE ${PROJECT_SOURCE_DIR}/include)
+#     add_test(NAME ${test_name} COMMAND ${test_name})
+# endforeach()

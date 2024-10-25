@@ -19,16 +19,11 @@
 #include <mysql_driver.h>
 #include <mysql_connection.h>
 #include <cppconn/driver.h>
-#include <cppconn/exception.h>
-#include <cppconn/resultset.h>
-#include <cppconn/statement.h>
-#include <cppconn/prepared_statement.h>
 #include <string>
 #include <memory>
 #include <queue>
 #include <mutex>
 #include <condition_variable>
-#include <iostream>
 
 class SQLConnection {
 public:
