@@ -59,7 +59,9 @@ private:
      * @param socket 
      */
     void handleRequest(std::shared_ptr<boost::asio::ssl::stream<boost::asio::ip::tcp::socket>> socket);
-
+    void readBody(std::shared_ptr<boost::asio::ssl::stream<boost::asio::ip::tcp::socket>> socket, std::shared_ptr<boost::asio::streambuf> buffer, std::size_t content_length, const std::string& path);
+    void sendResponse(std::shared_ptr<boost::asio::ssl::stream<boost::asio::ip::tcp::socket>> socket, const std::string& response);
+    void processRequest(std::shared_ptr<boost::asio::ssl::stream<boost::asio::ip::tcp::socket>> socket, const std::string& path, const std::string& body);
     boost::asio::io_service _io_service;                                                        //io_service
     boost::asio::ip::tcp::acceptor _acceptor;                                                   //acceptor接收器
     boost::asio::ssl::context _ssl_context;                                                     //ssl
