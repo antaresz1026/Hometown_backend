@@ -13,11 +13,13 @@
 #include "userHandler.hpp"
 #include "SQLConnection.hpp"
 #include "logger.hpp"
+#include "postManage.hpp"
 
 int main() {
     SQLConnection sql_connection("localhost", "antaresz", "antaresz.cc", "hometown");
     httpsServer server;
     userHandler user_handler(sql_connection);
+    postManage post_manager(sql_connection);
 
     server.setRoute("/register", [&user_handler](const std::string& request, std::string& response) {
         // 从 request 提取用户名和密码，调用 userHandler.registerUser 处理注册逻辑。
@@ -25,8 +27,12 @@ int main() {
             auto json_body = nlohmann::json::parse(request);
             std::string username = json_body["username"];
             std::string password = json_body["password"];
+            std::string user_type = json_body["user_type"];
+            std::string id_type = json_body["id_type"];
+            std::string id_number = json_body["id_number"];
+            std::string phone = json_body["phone"];
 
-            if(user_handler.registerUser(username, password)) {
+            if(user_handler.registerUser(username, password, user_type, id_type, id_number, phone)) {
                 response = "HTTP/1.1 200 OK\r\n\r\n";
                 response += "Welcome, " + username + "!";
             } else {
@@ -39,7 +45,25 @@ int main() {
             response += e.what();
         }
     });
+    server.setRoute("/createPost", [&post_manager](const std::string& request, std::string& response) {
+        try {
+            auto json_body = nlohmann::json::parse(request);
+            std::string userid = json_body["userid"];
+            std::string title = json_body["title"];
+            std::string content = json_body["content"];
+            std::string post_type = json_body["post_type"];
 
+            if(post_manager.createPost(std::stoi(userid), title, content, post_type)) {
+                response = "HTTP/1.1 200 OK\r\n\r\nLogin successful";
+            } else {
+                response = "HTTP/1.1 401 Unauthorized\r\n\r\nLogin failed";
+            }
+        } catch (const nlohmann::json::exception& e) {
+            // 构造错误响应
+            response = "HTTP/1.1 400 Bad Request\r\n\r\nInvalid JSON: ";
+            response += e.what();
+        }
+    });
     server.setRoute("/login", [&user_handler](const std::string& request, std::string& response) {
         try {
             auto json_body = nlohmann::json::parse(request);

@@ -26,42 +26,11 @@
 
 userHandler::userHandler(SQLConnection& connectionPool) : _connection_pool(connectionPool) {}
 
-// 使用 Crypto++ 生成 SHA256 加密密码，并将其与盐一起存储
-std::string userHandler::encryptPassword(const std::string& password) {
+// 修改后的 encryptPassword，接受盐值作为参数
+std::string userHandler::encryptPassword(const std::string& password, const std::string& salt) {
     using namespace CryptoPP;
 
-    // 生成一个随机的盐值
-    std::string salt = generateSalt();
-
-    // 使用 HMAC-SHA256 进行加密
-    std::string key = salt;  // 盐值作为密钥
-    std::string digest;
-    HMAC<SHA256> hmac((byte*)key.data(), key.size());
-
-    // 使用 Crypto++ 计算 HMAC-SHA256 的值
-    StringSource(password, true,
-                 new HashFilter(hmac,
-                                new HexEncoder(new StringSink(digest))));
-
-    // 返回 盐值:加密后的密码 的格式，方便存储和验证
-    return salt + ":" + digest;
-}
-
-// 验证密码是否匹配
-bool userHandler::verifyPassword(const std::string& password, const std::string& encrypted) {
-    using namespace CryptoPP;
-
-    // 提取盐值和存储的加密密码
-    size_t pos = encrypted.find(':');
-    if (pos == std::string::npos) {
-        return false;  // 格式不正确
-    }
-
-    std::string salt = encrypted.substr(0, pos);
-    std::string storedPassword = encrypted.substr(pos + 1);
-
-    // 使用盐值加密输入的密码
-    std::string key = salt;
+    std::string key = salt;  // 使用给定的盐值作为密钥
     std::string digest;
     HMAC<SHA256> hmac((byte*)key.data(), key.size());
 
@@ -70,8 +39,7 @@ bool userHandler::verifyPassword(const std::string& password, const std::string&
                  new HashFilter(hmac,
                                 new HexEncoder(new StringSink(digest))));
 
-    // 比较加密后的密码和存储的密码是否一致
-    return digest == storedPassword;
+    return digest;
 }
 
 // 生成一个随机盐值，用于密码加密
@@ -91,14 +59,23 @@ std::string userHandler::generateSalt() {
 }
 
 // 注册用户
-bool userHandler::registerUser(const std::string& username, const std::string& password) {
+bool userHandler::registerUser(const std::string& username, const std::string& password, const std::string& user_type, const std::string& id_type, const std::string& id_number, const std::string& phone) {
     auto conn = _connection_pool.getConnection();
-    std::string encryptedPassword = encryptPassword(password);
+
+    std::string salt = generateSalt();
+    std::string encryptedPassword = encryptPassword(password, salt);
 
     try {
-        std::unique_ptr<sql::PreparedStatement> pstmt(conn->prepareStatement("INSERT INTO users (username, password) VALUES (?, ?)"));
+        std::unique_ptr<sql::PreparedStatement> pstmt(
+            conn->prepareStatement("INSERT INTO users (username, salt, password, user_type, id_type, id_number, phone) VALUES (?, ?, ?, ?, ?, ?, ?)")
+        );
         pstmt->setString(1, username);
-        pstmt->setString(2, encryptedPassword);
+        pstmt->setString(2, salt);
+        pstmt->setString(3, encryptedPassword);
+        pstmt->setString(4, user_type);
+        pstmt->setString(5, id_type);
+        pstmt->setString(6, id_number);
+        pstmt->setString(7, phone);
         pstmt->executeUpdate();
         _connection_pool.releaseConnection(conn);
         return true;
@@ -109,18 +86,26 @@ bool userHandler::registerUser(const std::string& username, const std::string& p
     }
 }
 
-// 用户登录
+// 登录用户
 bool userHandler::loginUser(const std::string& username, const std::string& password) {
     auto conn = _connection_pool.getConnection();
     try {
-        std::unique_ptr<sql::PreparedStatement> pstmt(conn->prepareStatement("SELECT password FROM users WHERE username = ?"));
+        std::unique_ptr<sql::PreparedStatement> pstmt(
+            conn->prepareStatement("SELECT salt, password FROM users WHERE username = ?")
+        );
         pstmt->setString(1, username);
         std::unique_ptr<sql::ResultSet> res(pstmt->executeQuery());
 
-        if (res->next()) {  // 查询结果有匹配的用户名
+        if (res->next()) {  // 找到匹配的用户
+            std::string salt = res->getString("salt");
             std::string storedPassword = res->getString("password");
             _connection_pool.releaseConnection(conn);
-            return verifyPassword(password, storedPassword);
+
+            // 使用数据库中的盐值加密输入的密码
+            std::string encryptedPassword = encryptPassword(password, salt);
+
+            // 比较加密后的密码和存储的密码是否一致
+            return encryptedPassword == storedPassword;
         }
 
         _connection_pool.releaseConnection(conn);

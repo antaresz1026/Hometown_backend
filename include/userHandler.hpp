@@ -22,13 +22,12 @@
 class userHandler {
 public:
     userHandler(SQLConnection& connectionPool);
-    bool registerUser(const std::string& username, const std::string& password);
+    bool registerUser(const std::string& username, const std::string& password, const std::string& usertype, const std::string& idtype, const std::string& idnumber, const std::string& phone);
     bool loginUser(const std::string& username, const std::string& password);
 
 private:
     SQLConnection& _connection_pool;
-    std::string encryptPassword(const std::string& password);
-    bool verifyPassword(const std::string& password, const std::string& encrypted);
+    std::string encryptPassword(const std::string& password, const std::string& salt);
     
     std::string generateSalt();  // 生成盐值
     const size_t SALT_LENGTH = 16;  // 盐的长度

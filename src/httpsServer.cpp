@@ -19,6 +19,7 @@
 #include <boost/asio.hpp>
 #include <boost/asio/ssl.hpp>
 #include <nlohmann/json.hpp> 
+#include <assert.h>
 #include <iostream>
 #include "httpsServer.hpp"
 #include "logger.hpp"
@@ -109,6 +110,8 @@ void httpsServer::handleRequest(std::shared_ptr<boost::asio::ssl::stream<boost::
     boost::asio::async_read_until(*socket, *buffer, "\r\n\r\n",
         [this, socket, buffer](boost::system::error_code ec, std::size_t bytes_transferred) {
             if (!ec) {
+                std::string msg_display(boost::asio::buffers_begin(buffer->data()), boost::asio::buffers_end(buffer->data()));
+                logger::getInstance().log("debug", "Raw request: " + msg_display);
                 // 将请求头数据转换为字符串
                 std::string raw_data(boost::asio::buffers_begin(buffer->data()), boost::asio::buffers_begin(buffer->data()) + bytes_transferred);
 
@@ -120,14 +123,16 @@ void httpsServer::handleRequest(std::shared_ptr<boost::asio::ssl::stream<boost::
                 std::string method, path, http_version;
                 request_stream >> method >> path >> http_version;
 
-                logger::getInstance().log("debug", "Request: " + method + " " + path + " " + http_version);
 
                 // 查找 Content-Length
                 std::string header;
                 std::size_t content_length = 0;
+                std::getline(request_stream, header);
+                assert(header != "\r");
                 while (std::getline(request_stream, header) && header != "\r") {
                     std::string header_lower = header;
                     std::transform(header_lower.begin(), header_lower.end(), header_lower.begin(), ::tolower);
+                    std::cout << "Each header: " << header;
 
                     if (header_lower.find("content-length:") != std::string::npos) {
                         try {
@@ -140,7 +145,7 @@ void httpsServer::handleRequest(std::shared_ptr<boost::asio::ssl::stream<boost::
                         }
                     }
                 }
-
+                std::cout << "wtf!!!!!!!!!!!!!!!!!!" << buffer->size() << " " << content_length << "\n";
                 bool received_body = buffer->size() - content_length >= 0 ? true : false;                                           //>0代表收到了下一个包的部分，=0代表刚好收到
 
                 if (received_body) {
