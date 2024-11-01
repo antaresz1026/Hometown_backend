@@ -14,7 +14,10 @@ bool postManage::createPost(int upid, const std::string& title, const std::strin
     auto conn = _connection_pool.getConnection();
     try {
         std::shared_ptr<sql::PreparedStatement> stmt(
-            conn->prepareStatement("INSERT INTO posts (upid, title, content, posttype) VALUES (?, ?, ?, ?)")
+            conn->prepareStatement("INSERT INTO posts (upid, title, content, post_type) VALUES (?, ?, ?, ?)")
+        );
+        std::unique_ptr<sql::PreparedStatement> pstmt(
+            conn->prepareStatement("SELECT , password FROM users WHERE username = ?")
         );
         stmt->setInt(1, upid);
         stmt->setString(2, title);

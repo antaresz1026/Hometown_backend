@@ -48,15 +48,15 @@ int main() {
     server.setRoute("/createPost", [&post_manager](const std::string& request, std::string& response) {
         try {
             auto json_body = nlohmann::json::parse(request);
-            std::string userid = json_body["userid"];
+            std::string upid = json_body["upid"];
             std::string title = json_body["title"];
             std::string content = json_body["content"];
             std::string post_type = json_body["post_type"];
 
-            if(post_manager.createPost(std::stoi(userid), title, content, post_type)) {
-                response = "HTTP/1.1 200 OK\r\n\r\nLogin successful";
+            if(post_manager.createPost(std::stoi(upid), title, content, post_type)) {
+                response = "HTTP/1.1 200 OK\r\n\r\nPost create successfully";
             } else {
-                response = "HTTP/1.1 401 Unauthorized\r\n\r\nLogin failed";
+                response = "HTTP/1.1 401 Unauthorized\r\n\r\nPost create failed";
             }
         } catch (const nlohmann::json::exception& e) {
             // 构造错误响应

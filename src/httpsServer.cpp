@@ -32,7 +32,7 @@ httpsServer::httpsServer()
     _cert_path("/etc/letsencrypt/live/antaresz.cc/fullchain.pem"), _key_path("/etc/letsencrypt/live/antaresz.cc/privkey.pem") {
     _ssl_context.use_certificate_chain_file(_cert_path);
     _ssl_context.use_private_key_file(_key_path, boost::asio::ssl::context::pem);
-
+    _acceptor.set_option(boost::asio::socket_base::reuse_address(true));
     logger::getInstance().log("info", "HTTPS Server initialized.");
 }
 /**
@@ -114,7 +114,6 @@ void httpsServer::handleRequest(std::shared_ptr<boost::asio::ssl::stream<boost::
                 logger::getInstance().log("debug", "Raw request: " + msg_display);
                 // 将请求头数据转换为字符串
                 std::string raw_data(boost::asio::buffers_begin(buffer->data()), boost::asio::buffers_begin(buffer->data()) + bytes_transferred);
-
                 // 消费已读取的数据
                 buffer->consume(bytes_transferred);
 
@@ -122,17 +121,27 @@ void httpsServer::handleRequest(std::shared_ptr<boost::asio::ssl::stream<boost::
                 std::istringstream request_stream(raw_data);
                 std::string method, path, http_version;
                 request_stream >> method >> path >> http_version;
-
+                
+                // 消费掉遗留的\r\n
+                request_stream.get();
+                request_stream.get();
 
                 // 查找 Content-Length
                 std::string header;
                 std::size_t content_length = 0;
-                std::getline(request_stream, header);
-                assert(header != "\r");
-                while (std::getline(request_stream, header) && header != "\r") {
+
+                while (std::getline(request_stream, header)) {
                     std::string header_lower = header;
                     std::transform(header_lower.begin(), header_lower.end(), header_lower.begin(), ::tolower);
-                    std::cout << "Each header: " << header;
+
+                    // 去除 \r 字符
+                    if (!header.empty() && header.back() == '\r') {
+                        header.pop_back();
+                        assert(header.back() != '\r');
+                    }
+                    if (header.empty()) {
+                        break;  // 如果遇到空行，说明请求头结束
+                    }
 
                     if (header_lower.find("content-length:") != std::string::npos) {
                         try {
@@ -145,9 +154,9 @@ void httpsServer::handleRequest(std::shared_ptr<boost::asio::ssl::stream<boost::
                         }
                     }
                 }
-                std::cout << "wtf!!!!!!!!!!!!!!!!!!" << buffer->size() << " " << content_length << "\n";
-                bool received_body = buffer->size() - content_length >= 0 ? true : false;                                           //>0代表收到了下一个包的部分，=0代表刚好收到
-
+                std::size_t buffer_size = buffer->size();
+                bool received_body = buffer_size >= content_length ? true : false;                                           //>0代表收到了下一个包的部分，=0代表刚好收到
+                
                 if (received_body) {
                     // 读取请求体数据
                     std::string body(
@@ -234,7 +243,7 @@ void httpsServer::sendResponse(std::shared_ptr<boost::asio::ssl::stream<boost::a
                     if (!ec) {
                         socket->lowest_layer().close();
                     } else {
-                        logger::getInstance().log("error", "Error shutting down SSL: " + ec.message());
+                        logger::getInstance().log("warning", "Error shutting down SSL: " + ec.message());
                     }
                 });
             } else {
